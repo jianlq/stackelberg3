@@ -139,12 +139,12 @@ void CGraph::myDFS(int s,int t){
  }
 
 //load balance
-void heuristicLB(CGraph *G,vector<demand>&req,int ornum,double &mlu,double &thoughtput,double OPEN){
+void heuristicLB(CGraph *G,vector<demand>&req,int ornum,double &mlu,double &thoughtput){
 	G->clearOcc();
 	double util = 0;
 	int block = 0,success = 0;
 	for(unsigned int i = 0; i < req.size(); i++){
-		double ret = G->dijkstraLB(i,req[i].org, req[i].des, req[i].flow,0,1); 
+		double ret = G->dijkstraLB(i,req[i].org, req[i].des, req[i].flow,1); 
 		if(ret >= INF)
 			block++;
 		else{

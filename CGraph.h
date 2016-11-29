@@ -157,7 +157,7 @@ public:
 
 	// dijkstra
 	vector<vector<int>> reqPathID;
-	double dijkstraLB(int id,int s, int t, double dm ,bool ORselfish,bool needpath);
+	double dijkstraLB(int id,int s, int t, double dm ,bool needpath);
 
 	//dfs
 	vector<int> visit;
@@ -237,7 +237,7 @@ CGraph::CGraph(char* inputFile)
 	}
 }
 
-double CGraph::dijkstraLB(int id,int s, int t, double dm ,bool ORselfish,bool needpath){
+double CGraph::dijkstraLB(int id,int s, int t, double dm ,bool needpath){
 	vector<int> p, flag;
 	vector<double> d;//带宽利用率
 	for(int i = 0; i < n; i++){
@@ -246,45 +246,19 @@ double CGraph::dijkstraLB(int id,int s, int t, double dm ,bool ORselfish,bool ne
 		d.push_back(INF);
 	}
 
-	if(ORselfish){
-		for(int i = 0; i < m; i++){
-			CEdge *e = Link[i];
-			if(e->capacity - e->use <= dm)
-				e->latency = INF;
-			else
-				e->latency = 1.0/(e->capacity - e->use - dm);
-		}
-	}
-
 	d[s] = 0;
 	int cur = s;
 	do{	
 		flag[cur] = 1;
 		for(unsigned int i = 0; i < adjL[cur].size(); i++){
 			CEdge *e = adjL[cur][i];
-			if(CONSTANT){  
-				if(e->capacity - e->use >= dm && d[e->head] > d[e->tail] + e->dist){
-					d[e->head] = d[e->tail] + e->dist;
-					p[e->head] = e->id;
-				}
-			}
-			else {
-				if(ORselfish){  //latency	
-					if( d[e->head] > d[e->tail] + e->latency ){ 
-						d[e->head] = d[e->tail] + e->latency;
-						p[e->head] = e->id;
-					}		
-				}
-				else{  //util	
-					double util = ( dm + e->use )/e->capacity; // 带宽利用率最小
-					double tail_util = max(util,d[e->tail]);
-					if(e->capacity - e->use >= dm && d[e->head] > tail_util ){
-						d[e->head] = tail_util;
-						p[e->head] = e->id;
-					}
-				}
-			}
-
+			//util	
+			double util = ( dm + e->use )/e->capacity;
+			double tail_util = max(util,d[e->tail]);
+			if(e->capacity - e->use >= dm && d[e->head] > tail_util ){
+				d[e->head] = tail_util;
+				p[e->head] = e->id;
+			}		
 		}
 		cur = -1;
 		for(int i = 0; i < n; i++)
@@ -335,7 +309,7 @@ void genGraph(int n, int m, char route[]){
 void genGraphOR(int n1,unsigned int n2,int m,char route[]){ 
 	FILE *out=fopen(route,"w");
 	fprintf(out,"%d %d\n",n1,m);
-	set<int> ver; //不存重复元素
+	set<int> ver; //// set
 	while(ver.size()<n2){
 		int s=rand()%n1;
 		ver.insert(s);

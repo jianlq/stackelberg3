@@ -3,7 +3,7 @@
 #include"CGraph.h"
 #include <ilcplex/ilocplex.h>
 
-double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req,double OPEN){
+double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req){
 	IloEnv env;
 	IloModel model(env);
 	IloCplex EEsolver(model);
@@ -12,6 +12,10 @@ double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req,double OPEN){
 	IloArray<IloIntVarArray> x(env, num); 
 	for(int d = 0; d < num; d++)
 		x[d] = IloIntVarArray(env, G->m, 0, 1); 	
+
+	//优化目标
+	IloNumVar z(env, 0, 1);	
+    model.add(IloMinimize(env, z));
 
 	// 对每个点进行流量守恒约束  
 	for(int d = 0; d < num; d++){
@@ -35,23 +39,10 @@ double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req,double OPEN){
 		IloExpr constraint(env);
 		for(int d = 0; d <  num; d++)
 			constraint += req[d].flow*x[d][i];
-		model.add( constraint <= G->Link[i]->capacity );  
+		model.add( constraint <= G->Link[i]->capacity ); 
+		model.add( constraint <= z*G->Link[i]->capacity );  
 	}
-
-	//优化目标 节能 OPEN+X^2
-	IloExpr cost(env);
-	for(int i = 0; i < G->m; i++){
-		IloExpr load(env);
-		IloIntVarArray tmp(env,num,0,1);
-		for(int d = 0; d < num; d++){
-			load += req[d].flow*x[d][i];
-			tmp[d] = x[d][i];
-		}
-		//cost += ( IloPower(load,2) + IloMax(tmp)*OPEN );
-		cost += ( load*load + IloMax(tmp)*OPEN );
-	}
-	model.add(IloMinimize(env,cost));
-
+	
 	EEsolver.setOut(env.getNullStream());
 	double obj = INF;
 	if(EEsolver.solve()){
@@ -84,7 +75,7 @@ double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req,double OPEN){
 		} 		
 	}
 	else{
-		cout << "nashEE unfeasible"<<endl;
+		cout << "NashLB unfeasible"<<endl;
 	}
 	for(size_t i = 0; i < req.size(); i++)
 		x[i].end();

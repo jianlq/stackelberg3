@@ -19,7 +19,6 @@ public:
 	double throughput, mlu;//个体能力值的体现
 	double throughputbase;
 	double mlubase;
-	double OPEN;
 	// 构造函数
 	evoluDivbit() {;}
 	double GAability();
@@ -30,7 +29,7 @@ public:
 		mlu = INF;
 	}
 	//m为req的数量
-	evoluDivbit(int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double mlubest,double throughputbest, double con,double open){
+	evoluDivbit(int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double mlubest,double throughputbest, double con){
 		Init();
 		x.resize(m);
 		G = g;
@@ -39,12 +38,11 @@ public:
 		demor = dor;
 		throughputbase=throughputbest;
 		mlubase = mlubest;
-		OPEN = open;
 		consider = con;
 		randNature(); 
 	}
 
-	evoluDivbit(vector<vector<int> > &tx, CGraph *g,CGraph *gor, vector<demand> *d, vector<demand> *dor,double mlubest,double throughputbest,double con,double open){
+	evoluDivbit(vector<vector<int> > &tx, CGraph *g,CGraph *gor, vector<demand> *d, vector<demand> *dor,double mlubest,double throughputbest,double con){
 		Init();
 		x.clear();
 		G = g;
@@ -53,7 +51,6 @@ public:
 		demor=dor;
 		throughputbase=throughputbest;
 		mlubase = mlubest;
-			OPEN = open;
 		consider = con;
 		for(unsigned int i = 0; i < tx.size(); i++)
 			x.push_back(tx[i]);
@@ -87,7 +84,7 @@ public:
 				if(onezero[i][j]==1)
 					nx[i][j]=other.x[i][j];
 			}
-			return evoluDivbit(nx, G,GOR, dem,demor,other.mlubase,other.throughputbase,other.consider,other.OPEN);	
+			return evoluDivbit(nx, G,GOR, dem,demor,other.mlubase,other.throughputbase,other.consider);	
 	}
 
 	////将二进制转为十进制  路径编号的具体值
@@ -159,7 +156,7 @@ private:
 public:
 	evoluDivbit hero;
 	// n 种群大小  m:req数目 初始化种群
-	evoluPopubit(int n, int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double mlubest,double thoughtputbest,double con,double OPEN){
+	evoluPopubit(int n, int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double mlubest,double thoughtputbest,double con){
 		popu.clear();
 		pm = 0.25;
 		G = g;
@@ -167,10 +164,10 @@ public:
 		dem = d;
 		demor = dor;
 		for(int i = 0; i < n; i++){
-			evoluDivbit divi(m, G, GOR,dem,demor,mlubest,thoughtputbest,con,OPEN);
+			evoluDivbit divi(m, G, GOR,dem,demor,mlubest,thoughtputbest,con);
 			popu.push_back(divi);
 		}
-		hero = evoluDivbit(m, G,GOR, dem,demor,mlubest,thoughtputbest,con,OPEN);
+		hero = evoluDivbit(m, G,GOR, dem,demor,mlubest,thoughtputbest,con);
 		herofile = fopen("outputFile//hero.txt","a");
 	}
 	///////////  轮盘赌和
@@ -278,7 +275,7 @@ double evoluDivbit::GAability(){
 
 	this->GOR->clearOcc();
 	Calthroughput();
-	double bw = bwcplex(GOR,(*demor));
+	double bw = NashBW(GOR,(*demor));
 
 	//新的流量矩阵
 	vector<demand> req;
@@ -291,17 +288,17 @@ double evoluDivbit::GAability(){
 		req.push_back((*dem)[i]);
 	}
 
-	// 计算TE的目标值
+	// 计算LB的目标值
 	G->clearOcc(); 
-	double ee,bw2;
-	heuristicLB(G,req,ornum,ee,bw2,OPEN);
+	double lb,bw2;
+	heuristicLB(G,req,ornum,lb,bw2);
 	
 	//cout << bw <<" " << bw2 << " ***;   ";
 	double ab = MIN;
-	if ( (bw -1e-5) <= SMALL && (ee+1e-5) >= INF){
-		this->mlu = ee;
+	if ( (bw -1e-5) <= SMALL && (lb+1e-5) >= INF){
+		this->mlu = lb;
 		this->throughput = bw;	
-		ab = this->mlubase/ee + bw*this->consider / this->throughputbase;  
+		ab = this->mlubase/lb + bw*this->consider / this->throughputbase;  
 	}
 	return ab;
 }

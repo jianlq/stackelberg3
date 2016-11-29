@@ -3,8 +3,7 @@
 #include"CGraph.h"
 #include <ilcplex/ilocplex.h>
 
-// OPEN+x^2
-double LBdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
+double LBdictor(CGraph *G,vector<demand> & req,int ornum){
 	IloEnv env;
 	IloModel model(env);
 	IloCplex EEsolver(model);
@@ -68,7 +67,7 @@ double LBdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 		cout << "LB\t利用率 "<< obj <<"\t吞吐率 "<<output<<endl;
 	}
 	else{
-		cout << "TE unfeasible"<<endl;
+		cout << "LB unfeasible"<<endl;
 	}
 	for(size_t i = 0; i < req.size(); i++)
 		x[i].end();
@@ -78,7 +77,7 @@ double LBdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 }
 
 //数据流 吞吐率 P18
-double throughput(CGraph *G,vector<demand> req,int ornum,double OPEN){    
+double throughput(CGraph *G,vector<demand> req,int ornum){    
 	IloEnv env;
 	IloModel model(env);
 	IloCplex ORsolver(model);
@@ -163,7 +162,7 @@ double throughput(CGraph *G,vector<demand> req,int ornum,double OPEN){
 }
 
 //nashbw
-double bwcplex(CGraph *g,vector<demand> req){    
+double NashBW(CGraph *g,vector<demand> req){    
 	IloEnv env;
 	IloModel model(env);
 	IloCplex ORsolver(model);
@@ -208,7 +207,7 @@ double bwcplex(CGraph *g,vector<demand> req){
 		double obj = SMALL;
 		ORsolver.solve();
 		if(ORsolver.getStatus() == IloAlgorithm::Infeasible)
-			env.out() << "throughput unfeasible" << endl;
+			env.out() << "NashBW unfeasible" << endl;
 		else{
 			obj = ORsolver.getObjValue();
 			//use

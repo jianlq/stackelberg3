@@ -7,15 +7,6 @@ int main(){
 	srand((unsigned)time(NULL));
 	int Time = 3;
 	int CASEnum= 30;	
-	vector<double> STARTUP;
-	STARTUP.push_back(0);
-	STARTUP.push_back(10);
-	STARTUP.push_back(100);
-	STARTUP.push_back(500);
-	STARTUP.push_back(1000);
-	STARTUP.push_back(2000);
-	STARTUP.push_back(4000);
-	STARTUP.push_back(10000);
 
 	vector<double>CONSIDER;
 	int CON_VALUE = 25;
@@ -28,23 +19,22 @@ int main(){
 	int LOOP  = 100;
 
 	for(int i =0;i<Time;i++){
-		for(unsigned int start = 0; start < STARTUP.size();start++){
 			FILE *out = fopen("outputFile//eebw.csv", "a");
 			FILE *res = fopen("outputFile//result.csv", "a");
 			FILE *nash = fopen("outputFile//nash.csv", "a");
 
 			int conN = CONSIDER.size();
-			vector<double> see(conN,0) ;
-			vector<double> sor(conN,0);
+			vector<double> smlu(conN,0) ;
+			vector<double> sbw(conN,0);
 
-			vector<double> dicee(conN,0) ;
-			vector<double> diceeor(conN,0) ;
+			vector<double> mlu(conN,0) ;
+			vector<double> mlubw(conN,0) ;
 
-			vector<double> dicoree(conN,0);
-			vector<double> dicor(conN,0);
+			vector<double> bwmlu(conN,0);
+			vector<double> bw(conN,0);
 
-			vector<double> nashee(conN,0) ;
-			vector<double> nashor(conN,0);
+			vector<double> nashmlu(conN,0) ;
+			vector<double> nashbw(conN,0);
 
 			vector<int> successCase (conN, 0) ;
 			vector<int> flag(conN,1);
@@ -86,10 +76,10 @@ int main(){
 				double eedic = 0, ordic = 0;
 
 				G->clearOcc();
-				eedic = LBdictor(G,eqTE,ornum,STARTUP[start]);
+				eedic = LBdictor(G,eqTE,ornum);
 
 				G->clearOcc();
-				ordic = throughput(G,eqTE,ornum,STARTUP[start]);
+				ordic = throughput(G,eqTE,ornum);
 
 				G->clearOcc();
 				if(!G->GAinit(eqTE)){
@@ -104,7 +94,7 @@ int main(){
 
 					int n = 150;//种群个体数目
 					int m = eqTE.size();
-					evoluPopubit popubit(n,m,G,GOR,&eqTE,&eqOR,eedic,ordic,CONSIDER[con],STARTUP[start]);
+					evoluPopubit popubit(n,m,G,GOR,&eqTE,&eqOR,eedic,ordic,CONSIDER[con]);
 					(popubit).evolution();
 					cout<<"S\t"<<popubit.hero.mlu<<"\t"<<popubit.hero.throughput <<endl;
 
@@ -115,18 +105,18 @@ int main(){
 
 					//// nash	
 					int nacase = 0;
-					double loopnashee=0,loopnashor=0;
+					double loopnashmlu = 0,loopnashbw = 0;
 					fprintf(out,"\n nash \n");
 					for(int i =0;i<LOOP;i++){
 						G->clearOcc();
 						GOR->clearOcc();
-						double ee = NashEE(G,GOR,eqTE,STARTUP[start]);
-						if(ee + 1e-5 >= INF){
+						double curmlu = NashEE(G,GOR,eqTE);
+						if( curmlu + 1e-5 >= INF){
 							fprintf(nash,"NashEE unfeasible\n");
 							break;
 						}
-						double bw = bwcplex(GOR,eqOR);
-						if( bw - 1e-5 <= SMALL){
+						double curbw = NashBW(GOR,eqOR);
+						if( curbw - 1e-5 <= SMALL){
 							fprintf(nash,"NashOR unfeasible\n");
 							break;
 						}
@@ -139,30 +129,30 @@ int main(){
 							eqTE.push_back(eqbase[i]);
 						
 						nacase++;
-						loopnashee += ee;
-						loopnashor += bw;
-						fprintf(nash,"%f,%f\n",ee,bw);
+						loopnashmlu += curmlu;
+						loopnashbw += curbw;
+						fprintf(nash,"%f,%f\n",curmlu,curbw);
 					}
 					fclose(nash);
 
 					if(flag[con]){	
-						fprintf(out,"LB,%f,%f,%f\n",STARTUP[start],eedic,G->throughput);
-						fprintf(out,"OR,%f,%f,%f\n",STARTUP[start],G->mlu,ordic);
-						fprintf(out,"S,%f,%f,%f\n",STARTUP[start],popubit.hero.mlu,popubit.hero.throughput);
-						fprintf(out,"Nash,%f,%f,%f\n",STARTUP[start],loopnashee/nacase,loopnashor/nacase);
+						fprintf(out,"LB,%f,%f,%f\n",eedic,G->throughput);
+						fprintf(out,"OR,%f,%f,%f\n",G->mlu,ordic);
+						fprintf(out,"S,%f,%f,%f\n",popubit.hero.mlu,popubit.hero.throughput);
+						fprintf(out,"Nash,%f,%f,%f\n",loopnashmlu/nacase,loopnashbw/nacase);
 
 						successCase[con] += 1;
-						dicee[con] += eedic;
-						diceeor[con] += G->throughput;
+						mlu[con] += eedic;
+						mlubw[con] += G->throughput;
 
-						dicoree[con] += G->mlu;
-						dicor[con] += ordic;						
+						bw[con] += G->mlu;
+						bwmlu[con] += ordic;						
 
-						see[con] += popubit.hero.mlu;
-						sor[con] += popubit.hero.throughput;
+						smlu[con] += popubit.hero.mlu;
+						sbw[con] += popubit.hero.throughput;
 
-						nashee[con] += (loopnashee/nacase);
-						nashor[con] += (loopnashor/nacase);
+						nashmlu[con] += (loopnashmlu/nacase);
+						nashbw[con] += (loopnashbw/nacase);
 						fclose(out);
 					}
 
@@ -171,15 +161,14 @@ int main(){
 				delete GOR;
 
 			}
-			fprintf(res, "%f\n",STARTUP[start]);
 			for(unsigned int con = 0;con < CONSIDER.size();con++){
-				fprintf(res, "LB,%f,%f,%f\n",CONSIDER[con],dicee[con]/successCase[con],diceeor[con]/successCase[con]); 
-				fprintf(res, "OR,%f,%f,%f\n",CONSIDER[con],dicor[con]/successCase[con],dicoree[con]/successCase[con]); 
-				fprintf(res, "S,%f,%f,%f\n",CONSIDER[con],see[con]/successCase[con],sor[con]/successCase[con]); 
-				fprintf(res, "nash,%f,%f,%f\n",CONSIDER[con],nashee[con]/successCase[con],nashor[con]/successCase[con]); 
+				fprintf(res, "LB,%f,%f,%f\n",CONSIDER[con],mlu[con]/successCase[con],mlubw[con]/successCase[con]); 
+				fprintf(res, "OR,%f,%f,%f\n",CONSIDER[con],bwmlu[con]/successCase[con],bw[con]/successCase[con]); 
+				fprintf(res, "S,%f,%f,%f\n",CONSIDER[con],smlu[con]/successCase[con],sbw[con]/successCase[con]); 
+				fprintf(res, "nash,%f,%f,%f\n",CONSIDER[con],nashmlu[con]/successCase[con],nashbw[con]/successCase[con]); 
 			}
 			fclose(res);
-		}
+		
 	}
 	system("pause");
 	return 0;	
