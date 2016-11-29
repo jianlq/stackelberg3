@@ -63,13 +63,13 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 			double loadc = 0;
 			for(int d = 0;d < num; d++)
 				loadc += EEsolver.getValue(x[d][i])*req[d].flow;
-			G->Link[i]->use = G->Link[i]->capacity -loadc; //residual bw
+			G->Link[i]->bw = G->Link[i]->capacity -loadc; //residual bw
 		}
 		for(int d = 0;d < ornum; d++){
 			double res = INF;
 			for(int i = 0;i < G->m; i++){
 				if(EEsolver.getValue(x[d][i]) > 0.5)
-					res = min( res, G->Link[i]->use );
+					res = min( res, G->Link[i]->bw );
 			}
 			output += res*req[d].flow;
 		}
@@ -79,7 +79,7 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 	else{
 		cout << "EE unfeasible"<<endl;
 	}
-	for(int i = 0; i < req.size(); i++)
+	for(size_t i = 0; i < req.size(); i++)
 		x[i].end();
 	x.end();
 	env.end();
@@ -167,13 +167,14 @@ double throughput(CGraph *G,vector<demand> req,int ornum,double OPEN){
 			G->energy = energy;
 			cout << "OR\t能耗 "<<energy<< "\t吞吐率 "<<obj<<endl;
 		}
-		for(int i = 0; i < req.size(); i++)
+		for(size_t i = 0; i < req.size(); i++)
 			x[i].end();
 		x.end();
 		env.end();
 		return obj;
 }
 
+//nashbw
 double bwcplex(CGraph *g,vector<demand> req){    
 	IloEnv env;
 	IloModel model(env);
@@ -191,10 +192,9 @@ double bwcplex(CGraph *g,vector<demand> req){
 	for(int i = 0;i < num; i++)
 		cost[i] = IloExpr(env);
 
-	//Res[d] <= ((1-x[d][i])*INF + (G->Link[i]->capacity - Load[i])));
 	for(int d = 0; d < num; d++){
 		for(int i = 0; i < g->m; i++)
-			model.add(cost[d] <= ( (1-x[d][i])*INF + g->Link[i]->bw) ); //G->Link[i]->bw : residual bandwidth
+			model.add(cost[d] <= ( (1-x[d][i])*INF + g->Link[i]->bw) ); //g->Link[i]->bw : residual bandwidth
 		goal += cost[d];	
 	}
 	model.add(IloMaximize(env,goal));
@@ -232,7 +232,7 @@ double bwcplex(CGraph *g,vector<demand> req){
 				g->Link[i]->use = load;
 			}
 		}
-		for(int i = 0; i < req.size(); i++)
+		for(size_t i = 0; i < req.size(); i++)
 			x[i].end();
 		x.end();
 		env.end();
