@@ -157,13 +157,13 @@ public:
 
 	// dijkstra
 	vector<vector<int>> reqPathID;
-	double EE(int id,int s,int t,double dm,bool needpath,double OPEN);
+	double dijkstraLB(int id,int s, int t, double dm ,bool ORselfish,bool needpath);
 
 	//dfs
 	vector<int> visit;
 
-	//独裁
-	double energy;
+	////
+	double mlu;
 	double throughput;
 
 public:
@@ -235,6 +235,83 @@ CGraph::CGraph(char* inputFile)
 	for(i=vert.begin();i!=vert.end();i++){ 
 		ver.push_back(*i);
 	}
+}
+
+double CGraph::dijkstraLB(int id,int s, int t, double dm ,bool ORselfish,bool needpath){
+	vector<int> p, flag;
+	vector<double> d;//带宽利用率
+	for(int i = 0; i < n; i++){
+		p.push_back(-1);
+		flag.push_back(0);
+		d.push_back(INF);
+	}
+
+	if(ORselfish){
+		for(int i = 0; i < m; i++){
+			CEdge *e = Link[i];
+			if(e->capacity - e->use <= dm)
+				e->latency = INF;
+			else
+				e->latency = 1.0/(e->capacity - e->use - dm);
+		}
+	}
+
+	d[s] = 0;
+	int cur = s;
+	do{	
+		flag[cur] = 1;
+		for(unsigned int i = 0; i < adjL[cur].size(); i++){
+			CEdge *e = adjL[cur][i];
+			if(CONSTANT){  
+				if(e->capacity - e->use >= dm && d[e->head] > d[e->tail] + e->dist){
+					d[e->head] = d[e->tail] + e->dist;
+					p[e->head] = e->id;
+				}
+			}
+			else {
+				if(ORselfish){  //latency	
+					if( d[e->head] > d[e->tail] + e->latency ){ 
+						d[e->head] = d[e->tail] + e->latency;
+						p[e->head] = e->id;
+					}		
+				}
+				else{  //util	
+					double util = ( dm + e->use )/e->capacity; // 带宽利用率最小
+					double tail_util = max(util,d[e->tail]);
+					if(e->capacity - e->use >= dm && d[e->head] > tail_util ){
+						d[e->head] = tail_util;
+						p[e->head] = e->id;
+					}
+				}
+			}
+
+		}
+		cur = -1;
+		for(int i = 0; i < n; i++)
+			if(!flag[i] && (cur == -1 || d[cur] > d[i] ))
+				cur = i;
+	}while(cur != -1);
+
+	cur = t;
+	do{
+		if(p[cur] == -1)
+			break;
+		Link[p[cur]]->use += dm;
+		cur = Link[p[cur]]->tail;
+	}while(cur != s);
+
+	if(needpath){
+		reqPathID[id].clear();
+		cur = t;
+		do{
+			if(p[cur] == -1)
+				break;
+			this->reqPathID[id].push_back(p[cur]);
+			cur = Link[p[cur]]->tail;
+		}while(cur != s);
+		reverse(reqPathID[id].begin(),reqPathID[id].end());
+	}
+	return d[t];
 }
 
 void genGraph(int n, int m, char route[]){ 

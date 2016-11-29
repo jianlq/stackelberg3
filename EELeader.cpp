@@ -1,7 +1,8 @@
 ﻿#include"evolutionbit.h"
-#include"EE.h"
+#include"solver.h"
 #include"nash.h"
 
+// 网络链路利用率，应用吞吐率
 int main(){
 	srand((unsigned)time(NULL));
 	int Time = 3;
@@ -85,7 +86,7 @@ int main(){
 				double eedic = 0, ordic = 0;
 
 				G->clearOcc();
-				eedic = EEdictor(G,eqTE,ornum,STARTUP[start]);
+				eedic = LBdictor(G,eqTE,ornum,STARTUP[start]);
 
 				G->clearOcc();
 				ordic = throughput(G,eqTE,ornum,STARTUP[start]);
@@ -105,9 +106,9 @@ int main(){
 					int m = eqTE.size();
 					evoluPopubit popubit(n,m,G,GOR,&eqTE,&eqOR,eedic,ordic,CONSIDER[con],STARTUP[start]);
 					(popubit).evolution();
-					cout<<"S\t"<<popubit.hero.energy<<"\t"<<popubit.hero.throughput <<endl;
+					cout<<"S\t"<<popubit.hero.mlu<<"\t"<<popubit.hero.throughput <<endl;
 
-					if( (popubit.hero.energy +1e-5) >= INF ||  (popubit.hero.throughput  - 1e-5) < 0 ){
+					if( (popubit.hero.mlu +1e-5) >= INF ||  (popubit.hero.throughput  - 1e-5) < 0 ){
 						flag[con] = 0;
 						break;
 					}
@@ -145,19 +146,19 @@ int main(){
 					fclose(nash);
 
 					if(flag[con]){	
-						fprintf(out,"EE,%f,%f,%f\n",STARTUP[start],eedic,G->throughput);
-						fprintf(out,"OR,%f,%f,%f\n",STARTUP[start],G->energy,ordic);
-						fprintf(out,"S,%f,%f,%f\n",STARTUP[start],popubit.hero.energy,popubit.hero.throughput);
+						fprintf(out,"LB,%f,%f,%f\n",STARTUP[start],eedic,G->throughput);
+						fprintf(out,"OR,%f,%f,%f\n",STARTUP[start],G->mlu,ordic);
+						fprintf(out,"S,%f,%f,%f\n",STARTUP[start],popubit.hero.mlu,popubit.hero.throughput);
 						fprintf(out,"Nash,%f,%f,%f\n",STARTUP[start],loopnashee/nacase,loopnashor/nacase);
 
 						successCase[con] += 1;
 						dicee[con] += eedic;
 						diceeor[con] += G->throughput;
 
-						dicoree[con] += G->energy;
+						dicoree[con] += G->mlu;
 						dicor[con] += ordic;						
 
-						see[con] += popubit.hero.energy;
+						see[con] += popubit.hero.mlu;
 						sor[con] += popubit.hero.throughput;
 
 						nashee[con] += (loopnashee/nacase);
@@ -172,7 +173,7 @@ int main(){
 			}
 			fprintf(res, "%f\n",STARTUP[start]);
 			for(unsigned int con = 0;con < CONSIDER.size();con++){
-				fprintf(res, "EE,%f,%f,%f\n",CONSIDER[con],dicee[con]/successCase[con],diceeor[con]/successCase[con]); 
+				fprintf(res, "LB,%f,%f,%f\n",CONSIDER[con],dicee[con]/successCase[con],diceeor[con]/successCase[con]); 
 				fprintf(res, "OR,%f,%f,%f\n",CONSIDER[con],dicor[con]/successCase[con],dicoree[con]/successCase[con]); 
 				fprintf(res, "S,%f,%f,%f\n",CONSIDER[con],see[con]/successCase[con],sor[con]/successCase[con]); 
 				fprintf(res, "nash,%f,%f,%f\n",CONSIDER[con],nashee[con]/successCase[con],nashor[con]/successCase[con]); 

@@ -1,8 +1,7 @@
 ﻿#ifndef DFS_H
 #define DFS_H
 #include"CGraph.h"
-#include"EE.h"
-//#include <ilcplex/ilocplex.h>
+#include"solver.h"
 
 void CGraph::KSP(int s, int t, unsigned int k)
 {
@@ -139,24 +138,23 @@ void CGraph::myDFS(int s,int t){
 			return;
  }
 
-
-void heuristicEE(CGraph *G,vector<demand>&req,int ornum,double &energy,double &thoughtput,double OPEN){
+//load balance
+void heuristicLB(CGraph *G,vector<demand>&req,int ornum,double &mlu,double &thoughtput,double OPEN){
+	G->clearOcc();
+	double util = 0;
 	int block = 0,success = 0;
 	for(unsigned int i = 0; i < req.size(); i++){
-		double ret = G->EE(i,req[i].org, req[i].des, req[i].flow,true,OPEN);	
-		if( ret+1e-5 >= INF)
+		double ret = G->dijkstraLB(i,req[i].org, req[i].des, req[i].flow,0,1); 
+		if(ret >= INF)
 			block++;
-		else
+		else{
 			success++;
-	}
-	energy = thoughtput = INF;
-	if(success == req.size()){	
-		energy = 0;
-		////calculate energy
-		for(int ij=0;ij<G->m;ij++){
-			if(G->Link[ij]->use>0)
-				energy += (OPEN + G->Link[ij]->use*G->Link[ij]->use);
+			util = max(mlu,ret);
 		}
+	}
+	mlu = thoughtput = INF;
+	if(success == req.size()){	
+		mlu = util;
 		//calculate throughput
 		thoughtput = 0;
 		for(int i = 0;i < G->m; i++){  

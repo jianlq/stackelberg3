@@ -1,7 +1,7 @@
 ﻿#ifndef EVOLUTIONBIT_H
 #define EVOLUTIONBIT_H
 #include"DFS.h"
-#include"EE.h"
+#include"solver.h"
 
 // 个体 individual
 class evoluDivbit{
@@ -16,9 +16,9 @@ private:
 public:
 	vector<vector<int>> x;//解  各个req经过的路径编号 二进制编码 req*4
 	double ability; //个体能力
-	double throughput, energy;//个体能力值的体现
+	double throughput, mlu;//个体能力值的体现
 	double throughputbase;
-	double energybase;
+	double mlubase;
 	double OPEN;
 	// 构造函数
 	evoluDivbit() {;}
@@ -27,10 +27,10 @@ public:
 	void Init(){
 		ability = MIN;
 		throughput = 0;
-		energy = INF;
+		mlu = INF;
 	}
 	//m为req的数量
-	evoluDivbit(int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double energybest,double throughputbest, double con,double open){
+	evoluDivbit(int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double mlubest,double throughputbest, double con,double open){
 		Init();
 		x.resize(m);
 		G = g;
@@ -38,13 +38,13 @@ public:
 		dem = d;
 		demor = dor;
 		throughputbase=throughputbest;
-		energybase = energybest;
+		mlubase = mlubest;
 		OPEN = open;
 		consider = con;
 		randNature(); 
 	}
 
-	evoluDivbit(vector<vector<int> > &tx, CGraph *g,CGraph *gor, vector<demand> *d, vector<demand> *dor,double energybest,double throughputbest,double con,double open){
+	evoluDivbit(vector<vector<int> > &tx, CGraph *g,CGraph *gor, vector<demand> *d, vector<demand> *dor,double mlubest,double throughputbest,double con,double open){
 		Init();
 		x.clear();
 		G = g;
@@ -52,7 +52,7 @@ public:
 		dem = d;
 		demor=dor;
 		throughputbase=throughputbest;
-		energybase = energybest;
+		mlubase = mlubest;
 			OPEN = open;
 		consider = con;
 		for(unsigned int i = 0; i < tx.size(); i++)
@@ -87,7 +87,7 @@ public:
 				if(onezero[i][j]==1)
 					nx[i][j]=other.x[i][j];
 			}
-			return evoluDivbit(nx, G,GOR, dem,demor,other.energybase,other.throughputbase,other.consider,other.OPEN);	
+			return evoluDivbit(nx, G,GOR, dem,demor,other.mlubase,other.throughputbase,other.consider,other.OPEN);	
 	}
 
 	////将二进制转为十进制  路径编号的具体值
@@ -159,7 +159,7 @@ private:
 public:
 	evoluDivbit hero;
 	// n 种群大小  m:req数目 初始化种群
-	evoluPopubit(int n, int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double energybest,double thoughtputbest,double con,double OPEN){
+	evoluPopubit(int n, int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double mlubest,double thoughtputbest,double con,double OPEN){
 		popu.clear();
 		pm = 0.25;
 		G = g;
@@ -167,10 +167,10 @@ public:
 		dem = d;
 		demor = dor;
 		for(int i = 0; i < n; i++){
-			evoluDivbit divi(m, G, GOR,dem,demor,energybest,thoughtputbest,con,OPEN);
+			evoluDivbit divi(m, G, GOR,dem,demor,mlubest,thoughtputbest,con,OPEN);
 			popu.push_back(divi);
 		}
-		hero = evoluDivbit(m, G,GOR, dem,demor,energybest,thoughtputbest,con,OPEN);
+		hero = evoluDivbit(m, G,GOR, dem,demor,mlubest,thoughtputbest,con,OPEN);
 		herofile = fopen("outputFile//hero.txt","a");
 	}
 	///////////  轮盘赌和
@@ -197,7 +197,7 @@ public:
 		for(unsigned int i = 0; i < hero.x.size(); i++)
 			hero.x[i] = h0;//开始的hero设为每个req都走各自路径集合的第0条路
 		hero.calAbility();
-		if(hero.ability>MIN) fprintf(herofile, "%f\t%f\t%f\n", hero.energy,hero.throughput,hero.ability);
+		if(hero.ability>MIN) fprintf(herofile, "%f\t%f\t%f\n", hero.mlu,hero.throughput,hero.ability);
 		//评价每个个体的能力
 		for(unsigned int i = 0; i < popu.size(); i++)
 			popu[i].calAbility();
@@ -251,7 +251,7 @@ public:
 			}
 			if(getMore){
 				fprintf(herofile, "Year %d: find hero \n", curYear);
-				fprintf(herofile,"%f\t%f\t%f\n", hero.energy,hero.throughput,hero.ability);
+				fprintf(herofile,"%f\t%f\t%f\n", hero.mlu,hero.throughput,hero.ability);
 			}
 			else nohero++;
 			if(nohero> NOHERO){
@@ -291,17 +291,17 @@ double evoluDivbit::GAability(){
 		req.push_back((*dem)[i]);
 	}
 
-	// 计算EE的目标值
+	// 计算TE的目标值
 	G->clearOcc(); 
 	double ee,bw2;
-	heuristicEE(G,req,ornum,ee,bw2,OPEN);
+	heuristicLB(G,req,ornum,ee,bw2,OPEN);
 	
 	//cout << bw <<" " << bw2 << " ***;   ";
 	double ab = MIN;
 	if ( (bw -1e-5) <= SMALL && (ee+1e-5) >= INF){
-		this->energy = ee;
+		this->mlu = ee;
 		this->throughput = bw;	
-		ab = this->energybase/ee + bw*this->consider / this->throughputbase;  
+		ab = this->mlubase/ee + bw*this->consider / this->throughputbase;  
 	}
 	return ab;
 }

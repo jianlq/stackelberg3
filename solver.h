@@ -4,7 +4,7 @@
 #include <ilcplex/ilocplex.h>
 
 // OPEN+x^2
-double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
+double LBdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 	IloEnv env;
 	IloModel model(env);
 	IloCplex EEsolver(model);
@@ -13,6 +13,10 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 	IloArray<IloIntVarArray> x(env, num); 
 	for(int d = 0; d < num; d++)
 		x[d] = IloIntVarArray(env, G->m, 0, 1); 	
+
+	 //优化目标
+	IloNumVar z(env, 0, 1);	
+    model.add(IloMinimize(env, z));
 
 	// 对每个点进行流量守恒约束  
 	for(int d = 0; d < num; d++){
@@ -33,30 +37,17 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 	}
 
 	for(int i = 0; i < G->m; i++){
-		IloExpr constraint(env);
-		for(int d = 0; d <  num; d++)
-			constraint += req[d].flow*x[d][i];
-		model.add( constraint <= G->Link[i]->capacity );  
-	}
-
-	//优化目标 节能 OPEN+X^2
-	IloExpr cost(env);
-	for(int i = 0; i < G->m; i++){
 		IloExpr load(env);
-		IloIntVarArray tmp(env,num,0,1);
-		for(int d = 0; d < num; d++){
+		for(int d = 0; d <  num; d++)
 			load += req[d].flow*x[d][i];
-			tmp[d] = x[d][i];
-		}
-		//cost += ( IloPower(load,2) + IloMax(tmp)*OPEN );
-		cost += ( load*load + IloMax(tmp)*OPEN );
+		model.add( load <= G->Link[i]->capacity );  
+		model.add( load <= z*G->Link[i]->capacity);	
 	}
-	model.add(IloMinimize(env,cost));
 
 	EEsolver.setOut(env.getNullStream());
 	double obj = INF;
 	if(EEsolver.solve()){
-		obj = EEsolver.getObjValue(); //energy
+		obj = EEsolver.getObjValue(); //mlu
 		//thoughtput
 		double output = 0;
 		for(int i = 0;i < G->m; i++){  
@@ -74,10 +65,10 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 			output += res*req[d].flow;
 		}
 		G->throughput = output;
-		cout << "EE\t能耗 "<< obj <<"\t吞吐率 "<<output<<endl;
+		cout << "LB\t利用率 "<< obj <<"\t吞吐率 "<<output<<endl;
 	}
 	else{
-		cout << "EE unfeasible"<<endl;
+		cout << "TE unfeasible"<<endl;
 	}
 	for(size_t i = 0; i < req.size(); i++)
 		x[i].end();
@@ -153,19 +144,16 @@ double throughput(CGraph *G,vector<demand> req,int ornum,double OPEN){
 			env.out() << "throughput unfeasible" << endl;
 		else{
 			obj = ORsolver.getObjValue();
-			// 计算 energy
-			double energy = 0;
+			// utilization
+			double util = 0;
 			for(int i = 0; i < G->m; i++){  
 				double load = 0;
-				double one = 0;
-				for(int d = 0; d < totalnum; d++){
+				for(int d = 0; d < totalnum; d++)
 					load += ORsolver.getValue(x[d][i])*req[d].flow;
-					one = max(one,ORsolver.getValue(x[d][i]));
-				}
-				energy += (one*OPEN + load*load);
+				util = max(util,load/G->Link[i]->capacity);
 			}
-			G->energy = energy;
-			cout << "OR\t能耗 "<<energy<< "\t吞吐率 "<<obj<<endl;
+			G->mlu = util;
+			cout << "OR\t利用率 "<<util<< "\t吞吐率 "<<obj<<endl;
 		}
 		for(size_t i = 0; i < req.size(); i++)
 			x[i].end();
@@ -237,60 +225,6 @@ double bwcplex(CGraph *g,vector<demand> req){
 		x.end();
 		env.end();
 		return obj;
-}
-
-
-double CGraph::EE(int id,int s,int t,double dm,bool needpath,double OPEN){
-	vector<int> p, flag;
-	vector<double> d;//energy
-	for(int i = 0; i < n; i++){
-		p.push_back(-1);
-		flag.push_back(0);
-		d.push_back(INF);
-	}
-
-	d[s] = 0;
-	int cur = s;
-	do{	
-		flag[cur] = 1;
-		for(unsigned int i = 0; i < adjL[cur].size(); i++){
-			CEdge *e = adjL[cur][i];
-			//e->latency = pow((e->use+dm),2)-pow(e->use,2);
-			e->latency = pow((e->use+dm),2);
-			if( 0 == e->use )
-				e->latency += OPEN;
-			if(e->capacity - e->use >= dm && d[e->head] > d[e->tail] + e->latency){
-				d[e->head] = d[e->tail] + e->latency;
-				p[e->head] = e->id;
-			}
-		}
-		cur = -1;
-		for(int i = 0; i < n; i++)
-			if(!flag[i] && (cur == -1 || d[cur] > d[i] ))
-				cur = i;
-	}while(cur != -1);
-
-	cur = t;
-	do{
-		if(p[cur] == -1)
-			break;
-		Link[p[cur]]->use += dm;
-		cur = Link[p[cur]]->tail;
-	}while(cur != s);
-
-	if(needpath){
-		reqPathID[id].clear();
-		cur = t;
-		do{
-			if(p[cur] == -1)
-				break;
-			this->reqPathID[id].push_back(p[cur]);
-			cur = Link[p[cur]]->tail;
-		}while(cur != s);
-		reverse(reqPathID[id].begin(),reqPathID[id].end());
-	}
-
-	return d[t];
 }
 
 #endif

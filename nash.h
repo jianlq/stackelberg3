@@ -55,7 +55,7 @@ double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req,double OPEN){
 	EEsolver.setOut(env.getNullStream());
 	double obj = INF;
 	if(EEsolver.solve()){
-		obj = EEsolver.getObjValue(); //energy
+		obj = EEsolver.getObjValue(); //mlu
 
 		for(int i = 0;i < G->m; i++){  
 			double loadc = 0;
