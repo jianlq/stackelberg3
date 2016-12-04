@@ -152,7 +152,7 @@ void heuristicLB(CGraph *G,vector<demand>&req,int ornum,double &mlu,double &thou
 			util = max(mlu,ret);
 		}
 	}
-	mlu = thoughtput = INF;
+	mlu = INF,thoughtput = SMALL;
 	if(success == req.size()){	
 		mlu = util;
 		//calculate throughput

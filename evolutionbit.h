@@ -25,7 +25,7 @@ public:
 	void Calthroughput();
 	void Init(){
 		ability = MIN;
-		throughput = 0;
+		throughput = SMALL;
 		mlu = INF;
 	}
 	//m为req的数量
@@ -293,12 +293,13 @@ double evoluDivbit::GAability(){
 	double lb,bw2;
 	heuristicLB(G,req,ornum,lb,bw2);
 	
-	//cout << bw <<" " << bw2 << " ***;   ";
+	cout << lb<<"  "<< bw <<" " << bw2 << endl;
+	
 	double ab = MIN;
-	if ( (bw -1e-5) <= SMALL && (lb+1e-5) >= INF){
+	if ( (bw -1e-5 >= SMALL) && ( lb +1e-5 <= INF) ){
 		this->mlu = lb;
-		this->throughput = bw;	
-		ab = this->mlubase/lb + bw*this->consider / this->throughputbase;  
+		this->throughput = bw2;	
+		ab = this->mlubase/lb + bw2*this->consider / this->throughputbase;  
 	}
 	return ab;
 }

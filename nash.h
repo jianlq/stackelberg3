@@ -3,7 +3,7 @@
 #include"CGraph.h"
 #include <ilcplex/ilocplex.h>
 
-double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req){
+double NashLB(CGraph *G,CGraph *GOR,vector<demand> & req){
 	IloEnv env;
 	IloModel model(env);
 	IloCplex EEsolver(model);

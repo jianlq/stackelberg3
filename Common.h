@@ -20,16 +20,16 @@
 using namespace std;
 
 
-#define MAXDEMAND 15
-#define BGNUM 5
+#define MAXDEMAND 10
+#define BGNUM 12
 #define INF 1000000
 #define SMALL 1e-4
 #define MAXWEIGHT 10
 #define MIN 0.01
 #define CONSTANT 0
 #define K 16
-#define MINCAPACITY 60
-#define MAXCAPACITY 80
+#define MINCAPACITY 40
+#define MAXCAPACITY 60
 
 
 #endif

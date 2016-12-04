@@ -137,7 +137,7 @@ double throughput(CGraph *G,vector<demand> req,int ornum){
 		}
 
 		ORsolver.setOut(env.getNullStream());
-		double obj = INF;
+		double obj = SMALL;
 		ORsolver.solve();
 		if(ORsolver.getStatus() == IloAlgorithm::Infeasible)
 			env.out() << "throughput unfeasible" << endl;
@@ -174,15 +174,13 @@ double NashBW(CGraph *g,vector<demand> req){
 
 	//优化目标
 	IloExpr goal(env);
+	IloIntVarArray cost(env,num,0,INF);
 	
-	IloExprArray cost(env, num);
-	for(int i = 0;i < num; i++)
-		cost[i] = IloExpr(env);
 
 	for(int d = 0; d < num; d++){
 		for(int i = 0; i < g->m; i++)
 			model.add(cost[d] <= ( (1-x[d][i])*INF + g->Link[i]->bw) ); //g->Link[i]->bw : residual bandwidth
-		goal += cost[d];	
+		goal += cost[d]*req[d].flow;	
 	}
 	model.add(IloMaximize(env,goal));
 
